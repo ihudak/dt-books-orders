@@ -3,8 +3,8 @@ package com.dynatrace.orders.repository;
 import com.dynatrace.orders.exception.PurchaseForbiddenException;
 import com.dynatrace.orders.exception.ResourceNotFoundException;
 import com.dynatrace.orders.model.Storage;
-import com.sun.istack.NotNull;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.client.RestTemplate;
 
@@ -21,7 +21,7 @@ public class StorageRepository {
 
 
 
-    public Storage buyBook(@NotNull Storage storage) {
+    public Storage buyBook(@NonNull Storage storage) {
         String urlBuilder = storageBaseURL +
                 "/sell-book";
         Storage storageNew = restTemplate.postForObject(urlBuilder, storage, Storage.class);
@@ -31,7 +31,7 @@ public class StorageRepository {
         return storageNew;
     }
 
-    public Storage returnBook(@NotNull Storage storage) {
+    public Storage returnBook(@NonNull Storage storage) {
         String urlBuilder = storageBaseURL +
                 "/ingest-book";
 

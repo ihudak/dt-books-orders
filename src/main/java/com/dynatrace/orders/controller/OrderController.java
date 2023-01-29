@@ -69,6 +69,7 @@ public class OrderController {
     @PostMapping("/orders")
     public Order createOrder(@RequestBody Order order) {
         Book book = verifyBook(order.getIsbn());
+        order.setPrice(book.getPrice()); // new order - taking the fresh price
         verifyClient(order.getEmail());
         Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
         if (order.isCompleted()) {
@@ -196,11 +197,16 @@ public class OrderController {
         }
         try {
             storageRepository.buyBook(storage);
-            payOrder(order);
         } catch (PurchaseForbiddenException purchaseForbiddenException) {
             order.setCompleted(false);
-        } catch (PaymentException ignored) {
+            throw purchaseForbiddenException;
+        }
+        try {
+            payOrder(order);
+        } catch (PaymentException paymentException) {
+            storageRepository.returnBook(storage);
             order.setCompleted(false);
+            throw paymentException;
         }
     }
 

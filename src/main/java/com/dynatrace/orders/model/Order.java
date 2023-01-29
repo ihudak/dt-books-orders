@@ -101,7 +101,7 @@ public class Order {
 
     public void setPrice(double price) {
         price = (double) Math.round(price * 100.0) / 100.0;
-        if (price <= 0 || price >= 1000000) {
+        if (price < 0 || price >= 1000000 || this.completed && price == 0) {
             throw new BadRequestException("Invalid price. Must be between 0 and 1 million. Got: " + price);
         }
         this.price = price;
@@ -113,6 +113,9 @@ public class Order {
     }
 
     public void setCompleted(boolean completed) {
+        if (this.price <= 0 && completed) {
+            throw new BadRequestException("Cannot complete the order while price is 0");
+        }
         this.completed = completed;
         this.updatedAt = new Date();
     }

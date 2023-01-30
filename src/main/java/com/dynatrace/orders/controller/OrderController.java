@@ -15,13 +15,8 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/")
-public class OrderController {
-    @Value("${added.workload.cpu}")
-    private long cpuPressure;
-    @Value("${added.workload.ram}")
-    private int memPressureMb;
-
+@RequestMapping("/api/v1/orders")
+public class OrderController extends HardworkingController {
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -32,17 +27,19 @@ public class OrderController {
     StorageRepository storageRepository;
     @Autowired
     PaymentRepository paymentRepository;
+    @Autowired
+    ConfigRepository configRepository;
     Logger logger = LoggerFactory.getLogger(OrderController.class);
 
 
     // get all Orders
-    @GetMapping("/orders")
+    @GetMapping("")
     public List<Order> getAllCarts() {
         return orderRepository.findAll(Sort.by(Sort.Direction.ASC, "email", "createdAt"));
     }
 
     // get Order by ID
-    @GetMapping("/orders/{id}")
+    @GetMapping("/{id}")
     public Order getCartById(@PathVariable Long id) {
         Optional<Order> order = orderRepository.findById(id);
         if (order.isEmpty()) {
@@ -52,22 +49,24 @@ public class OrderController {
     }
 
     // get Orders of a user
-    @GetMapping("/orders/findByEmail")
+    @GetMapping("/findByEmail")
     public List<Order> getCartsByEmail(@RequestParam String email) {
         this.verifyClient(email);
         return orderRepository.findByEmail(email);
     }
 
     // get all users who ordered the book
-    @GetMapping("/orders/findByISBN")
+    @GetMapping("/findByISBN")
     public List<Order> getCartsByISBN(@RequestParam String isbn) {
         this.verifyBook(isbn);
         return orderRepository.findByEmail(isbn);
     }
 
     // create an order
-    @PostMapping("/orders")
+    @PostMapping("")
     public Order createOrder(@RequestBody Order order) {
+        simulateHardWork();
+        simulateCrash();
         Book book = verifyBook(order.getIsbn());
         order.setPrice(book.getPrice()); // new order - taking the fresh price
         verifyClient(order.getEmail());
@@ -75,11 +74,12 @@ public class OrderController {
         if (order.isCompleted()) {
             buyFromStorage(storage, order, book);
         }
+        logger.debug("Created order for book " + order.getIsbn() + " client " + order.getEmail());
         return orderRepository.save(order);
     }
 
     // update an order
-    @PutMapping("/orders/{id}")
+    @PutMapping("/{id}")
     public Order updateOrderById(@PathVariable Long id, @RequestBody Order order) {
         Optional<Order> orderDb = orderRepository.findById(id);
         if (orderDb.isEmpty()) {
@@ -102,8 +102,10 @@ public class OrderController {
     }
 
     // submit order
-    @PostMapping("/orders/submit")
+    @PostMapping("/submit")
     public Order submitOrder(@RequestBody Order order) {
+        simulateHardWork();
+        simulateCrash();
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
             throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
@@ -117,12 +119,15 @@ public class OrderController {
         orderDb.setQuantity(order.getQuantity());
 
         buyFromStorage(storage, orderDb, book);
+        logger.debug("Submitted order for book " + order.getIsbn() + " client " + order.getEmail());
         return orderRepository.save(orderDb);
     }
 
     // cancel order
-    @PostMapping("/orders/cancel")
+    @PostMapping("/cancel")
     public Order cancelOrder(@RequestBody Order order) {
+        simulateHardWork();
+        simulateCrash();
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
             throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
@@ -135,17 +140,18 @@ public class OrderController {
         orderDb.setQuantity(order.getQuantity());
 
         returnToStorage(storage, orderDb);
+        logger.debug("Canceled order for book " + order.getIsbn() + " client " + order.getEmail());
         return orderRepository.save(orderDb);
     }
 
     // delete an order
-    @DeleteMapping("/orders/{id}")
+    @DeleteMapping("/{id}")
     public void deleteOrderById(@PathVariable Long id) {
         orderRepository.deleteById(id);
     }
 
     // delete all orders
-    @DeleteMapping("/orders/delete-all")
+    @DeleteMapping("/delete-all")
     public void deleteAllBooks() {
         orderRepository.deleteAll();
     }
@@ -183,6 +189,8 @@ public class OrderController {
     }
 
     private void buyFromStorage(Storage storage, Order order, Book book) {
+        simulateHardWork();
+        simulateCrash();
         if (!storage.getIsbn().equals(order.getIsbn())) {
             throw new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
         }
@@ -208,9 +216,12 @@ public class OrderController {
             order.setCompleted(false);
             throw paymentException;
         }
+        logger.debug("Took from Storage book " + order.getIsbn() + " client " + order.getEmail());
     }
 
     private void returnToStorage(Storage storage, Order order) {
+        simulateHardWork();
+        simulateCrash();
         if (!storage.getIsbn().equals(order.getIsbn())) {
             throw new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
         }
@@ -223,33 +234,22 @@ public class OrderController {
         } catch (PurchaseForbiddenException purchaseForbiddenException) {
             order.setCompleted(true);
         }
+        logger.debug("Returned order for book " + order.getIsbn() + " client " + order.getEmail());
     }
 
     private void payOrder(Order order) {
+        simulateHardWork();
+        simulateCrash();
         Payment payment = new Payment(order.getId(), order.getPrice() * order.getPrice(), order.getEmail());
         payment = paymentRepository.submitPayment(payment);
         if (null == payment || !payment.isSucceeded()) {
             throw new PaymentException(null == payment ? "Payment Failed" : payment.getMessage());
         }
+        logger.debug("Paid order for book " + order.getIsbn() + " client " + order.getEmail());
     }
 
-    private void simulateHardWork() {
-        int arraySize = (int)((long)this.memPressureMb * 1024L * 1024L / 8L);
-        if (arraySize < 0) {
-            arraySize = Integer.MAX_VALUE;
-        }
-        long[] longs = new long[arraySize];
-        int j = 0;
-        for(long i = 0; i < this.cpuPressure; i++, j++) {
-            j++;
-            if (j >= arraySize) {
-                j = 0;
-            }
-            try {
-                if (longs[j] > Integer.MAX_VALUE) {
-                    longs[j] = (long) Integer.MIN_VALUE;
-                }
-            } catch (Exception ignored) {};
-        }
+    @Override
+    public ConfigRepository getConfigRepository() {
+        return configRepository;
     }
 }

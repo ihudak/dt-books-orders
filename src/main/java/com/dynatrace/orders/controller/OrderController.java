@@ -111,7 +111,7 @@ public class OrderController extends HardworkingController {
             throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
         }
         if (orderDb.isCompleted()) {
-            throw new PurchaseForbiddenException("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            throw new AlreadyPaidException("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
         }
         verifyClient(order.getEmail());
         Book book = verifyBook(order.getIsbn());
@@ -133,7 +133,7 @@ public class OrderController extends HardworkingController {
             throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
         }
         if (!orderDb.isCompleted()) {
-            throw new PurchaseForbiddenException("Order is not paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            throw new AlreadyPaidException("Order is not paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
         }
         verifyClient(order.getEmail());
         Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());

@@ -43,7 +43,9 @@ public class OrderController extends HardworkingController {
     public Order getCartById(@PathVariable Long id) {
         Optional<Order> order = orderRepository.findById(id);
         if (order.isEmpty()) {
-            throw new ResourceNotFoundException("Order not found");
+            ResourceNotFoundException ex = new ResourceNotFoundException("Order not found");
+            logger.error(ex.getMessage());
+            throw ex;
         }
         return order.get();
     }
@@ -83,9 +85,13 @@ public class OrderController extends HardworkingController {
     public Order updateOrderById(@PathVariable Long id, @RequestBody Order order) {
         Optional<Order> orderDb = orderRepository.findById(id);
         if (orderDb.isEmpty()) {
-            throw new ResourceNotFoundException("Order not found");
+            ResourceNotFoundException ex = new ResourceNotFoundException("Order not found");
+            logger.error(ex.getMessage());
+            throw ex;
         } else if (order.getId() != id || orderDb.get().getId() != id) {
-            throw new BadRequestException("bad order id");
+            BadRequestException ex = new BadRequestException("bad order id");
+            logger.error(ex.getMessage());
+            throw ex;
         }
 
         Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
@@ -108,10 +114,14 @@ public class OrderController extends HardworkingController {
         simulateCrash();
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
-            throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            BadRequestException ex = new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         if (orderDb.isCompleted()) {
-            throw new AlreadyPaidException("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            AlreadyPaidException ex = new AlreadyPaidException("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         verifyClient(order.getEmail());
         Book book = verifyBook(order.getIsbn());
@@ -130,10 +140,14 @@ public class OrderController extends HardworkingController {
         simulateCrash();
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
-            throw new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            BadRequestException ex = new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         if (!orderDb.isCompleted()) {
-            throw new AlreadyPaidException("Order is not paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            AlreadyPaidException ex = new AlreadyPaidException("Order is not paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         verifyClient(order.getEmail());
         Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
@@ -159,7 +173,9 @@ public class OrderController extends HardworkingController {
     private void verifyClient(String email) {
         Client client = clientRepository.getClientByEmail(email);
         if (null == client) {
-            throw new ResourceNotFoundException("Client is not found by email " + email);
+            ResourceNotFoundException ex = new ResourceNotFoundException("Client is not found by email " + email);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         Client[] clients = clientRepository.getAllClients();
         logger.debug(clients.toString());
@@ -168,10 +184,14 @@ public class OrderController extends HardworkingController {
     private Book verifyBook(String isbn) {
         Book book = bookRepository.getBookByISBN(isbn);
         if (null == book) {
-            throw new ResourceNotFoundException("Book not found by isbn " + isbn);
+            ResourceNotFoundException ex = new ResourceNotFoundException("Book not found by isbn " + isbn);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         if (!book.isPublished()) {
-            throw new ResourceNotFoundException("The book is not yet vendible, ISBN: " + isbn);
+            ResourceNotFoundException ex = new ResourceNotFoundException("The book is not yet vendible, ISBN: " + isbn);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         Book[] books = bookRepository.getAllBooks();
         logger.debug(books.toString());
@@ -181,7 +201,9 @@ public class OrderController extends HardworkingController {
     private Storage verifyStorage(String isbn, int quantity) {
         Storage storage = storageRepository.getStorageByISBN(isbn);
         if (null == storage || storage.getQuantity() < quantity) {
-            throw new InsufficientResourcesException("We do not have enough books in storage, ISBN: " + isbn);
+            InsufficientResourcesException ex = new InsufficientResourcesException("We do not have enough books in storage, ISBN: " + isbn);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         Storage[] storages = storageRepository.getAllBooksInStorage();
         logger.debug(storages.toString());
@@ -192,14 +214,18 @@ public class OrderController extends HardworkingController {
         simulateHardWork();
         simulateCrash();
         if (!storage.getIsbn().equals(order.getIsbn())) {
-            throw new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
+            BadRequestException ex = new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         storage.setQuantity(order.getQuantity());
         if (!order.isCompleted()) {
             order.setCompleted(true);
         }
         if (book.getPrice() > order.getPrice()) {
-            throw new PurchaseForbiddenException("Price changed for book ISBN: " + book.getIsbn());
+            PurchaseForbiddenException ex = new PurchaseForbiddenException("Price changed for book ISBN: " + book.getIsbn());
+            logger.error(ex.getMessage());
+            throw ex;
         } else if (book.getPrice() < order.getPrice()) {
             order.setPrice(book.getPrice());
         }
@@ -223,7 +249,9 @@ public class OrderController extends HardworkingController {
         simulateHardWork();
         simulateCrash();
         if (!storage.getIsbn().equals(order.getIsbn())) {
-            throw new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
+            BadRequestException ex = new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         if (order.isCompleted()) {
             order.setCompleted(false);
@@ -232,6 +260,7 @@ public class OrderController extends HardworkingController {
         try {
             storageRepository.returnBook(storage);
         } catch (PurchaseForbiddenException purchaseForbiddenException) {
+            logger.error(purchaseForbiddenException.getMessage());
             order.setCompleted(true);
         }
         logger.debug("Returned order for book " + order.getIsbn() + " client " + order.getEmail());
@@ -243,7 +272,9 @@ public class OrderController extends HardworkingController {
         Payment payment = new Payment(order.getId(), order.getPrice() * order.getPrice(), order.getEmail());
         payment = paymentRepository.submitPayment(payment);
         if (null == payment || !payment.isSucceeded()) {
-            throw new PaymentException(null == payment ? "Payment Failed" : payment.getMessage());
+            PaymentException ex = new PaymentException(null == payment ? "Payment Failed" : payment.getMessage());
+            logger.error(ex.getMessage());
+            throw ex;
         }
         logger.debug("Paid order for book " + order.getIsbn() + " client " + order.getEmail());
     }

@@ -53,6 +53,7 @@ public class OrderController extends HardworkingController {
     // get Orders of a user
     @GetMapping("/findByEmail")
     public List<Order> getCartsByEmail(@RequestParam String email) {
+        logger.info("Finding orders for user " + email);
         this.verifyClient(email);
         return orderRepository.findByEmail(email);
     }
@@ -60,6 +61,7 @@ public class OrderController extends HardworkingController {
     // get all users who ordered the book
     @GetMapping("/findByISBN")
     public List<Order> getCartsByISBN(@RequestParam String isbn) {
+        logger.info("Finding orders for book " + isbn);
         this.verifyBook(isbn);
         return orderRepository.findByEmail(isbn);
     }
@@ -69,6 +71,7 @@ public class OrderController extends HardworkingController {
     public Order createOrder(@RequestBody Order order) {
         simulateHardWork();
         simulateCrash();
+        logger.info("client " + order.getEmail() + " orders book " + order.getIsbn());
         Book book = verifyBook(order.getIsbn());
         order.setPrice(book.getPrice()); // new order - taking the fresh price
         verifyClient(order.getEmail());
@@ -83,6 +86,7 @@ public class OrderController extends HardworkingController {
     // update an order
     @PutMapping("/{id}")
     public Order updateOrderById(@PathVariable Long id, @RequestBody Order order) {
+        logger.info("Updating order " + order.getIsbn() + " of client " + order.getEmail());
         Optional<Order> orderDb = orderRepository.findById(id);
         if (orderDb.isEmpty()) {
             ResourceNotFoundException ex = new ResourceNotFoundException("Order not found");
@@ -112,6 +116,7 @@ public class OrderController extends HardworkingController {
     public Order submitOrder(@RequestBody Order order) {
         simulateHardWork();
         simulateCrash();
+        logger.info("Submitting order " + order.getIsbn() + " client " + order.getEmail());
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
             BadRequestException ex = new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
@@ -138,6 +143,7 @@ public class OrderController extends HardworkingController {
     public Order cancelOrder(@RequestBody Order order) {
         simulateHardWork();
         simulateCrash();
+        logger.info("Canceling order " + order.getIsbn() + " client " + order.getEmail());
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
             BadRequestException ex = new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
@@ -161,16 +167,19 @@ public class OrderController extends HardworkingController {
     // delete an order
     @DeleteMapping("/{id}")
     public void deleteOrderById(@PathVariable Long id) {
+        logger.info("Deleting order " + id.toString());
         orderRepository.deleteById(id);
     }
 
     // delete all orders
     @DeleteMapping("/delete-all")
     public void deleteAllBooks() {
+        logger.info("Deleting all orders");
         orderRepository.deleteAll();
     }
 
     private void verifyClient(String email) {
+        logger.info("Verifying client " + email);
         Client client = clientRepository.getClientByEmail(email);
         if (null == client) {
             ResourceNotFoundException ex = new ResourceNotFoundException("Client is not found by email " + email);
@@ -182,6 +191,7 @@ public class OrderController extends HardworkingController {
     }
 
     private Book verifyBook(String isbn) {
+        logger.info("Verifying book " + isbn);
         Book book = bookRepository.getBookByISBN(isbn);
         if (null == book) {
             ResourceNotFoundException ex = new ResourceNotFoundException("Book not found by isbn " + isbn);
@@ -199,6 +209,7 @@ public class OrderController extends HardworkingController {
     }
 
     private Storage verifyStorage(String isbn, int quantity) {
+        logger.info("Verifying storage " + isbn);
         Storage storage = storageRepository.getStorageByISBN(isbn);
         if (null == storage || storage.getQuantity() < quantity) {
             InsufficientResourcesException ex = new InsufficientResourcesException("We do not have enough books in storage, ISBN: " + isbn);
@@ -213,6 +224,7 @@ public class OrderController extends HardworkingController {
     private void buyFromStorage(Storage storage, Order order, Book book) {
         simulateHardWork();
         simulateCrash();
+        logger.info("Buying from storage " + book.getIsbn() + " for client " + order.getEmail());
         if (!storage.getIsbn().equals(order.getIsbn())) {
             BadRequestException ex = new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
             logger.error(ex.getMessage());
@@ -248,6 +260,7 @@ public class OrderController extends HardworkingController {
     private void returnToStorage(Storage storage, Order order) {
         simulateHardWork();
         simulateCrash();
+        logger.info("Returning to storage " + order.getIsbn() + " for client " + order.getEmail());
         if (!storage.getIsbn().equals(order.getIsbn())) {
             BadRequestException ex = new BadRequestException("Wrong storage for ISBN: " + order.getIsbn());
             logger.error(ex.getMessage());
@@ -269,6 +282,7 @@ public class OrderController extends HardworkingController {
     private void payOrder(Order order) {
         simulateHardWork();
         simulateCrash();
+        logger.info("Paying order " + order.getIsbn() + " client " + order.getEmail());
         Payment payment = new Payment(order.getId(), order.getPrice() * order.getPrice(), order.getEmail());
         payment = paymentRepository.submitPayment(payment);
         if (null == payment || !payment.isSucceeded()) {

@@ -1,7 +1,10 @@
 package com.dynatrace.orders.repository;
 
+import com.dynatrace.orders.controller.OrderController;
 import com.dynatrace.orders.exception.ResourceNotFoundException;
 import com.dynatrace.orders.model.Client;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.client.RestTemplate;
@@ -10,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class ClientRepository {
     @Value("${http.service.clients}")
     private String clientBaseURL;
+    Logger logger = LoggerFactory.getLogger(ClientRepository.class);
 
     public ClientRepository() {
         restTemplate = new RestTemplate();
@@ -23,9 +27,14 @@ public class ClientRepository {
                 "?email=" +
                 email;
 
+        logger.info("Checking client");
+        logger.info(urlBuilder);
+
         Client client = restTemplate.getForObject(urlBuilder, Client.class);
         if (null == client) {
-            throw new ResourceNotFoundException("Client not found by email: " + email);
+            ResourceNotFoundException ex = new ResourceNotFoundException("Client not found by email: " + email);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         return client;
     }

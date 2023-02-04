@@ -2,6 +2,8 @@ package com.dynatrace.orders.repository;
 
 import com.dynatrace.orders.exception.ResourceNotFoundException;
 import com.dynatrace.orders.model.Book;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.client.RestTemplate;
@@ -11,6 +13,7 @@ public class BookRepository {
     @Value("${http.service.books}")
     private String bookBaseURL;
     private RestTemplate restTemplate;
+    Logger logger = LoggerFactory.getLogger(BookRepository.class);
 
     public BookRepository() {
         restTemplate = new RestTemplate();
@@ -23,9 +26,13 @@ public class BookRepository {
                 "?isbn=" +
                 isbn;
 
+        logger.info("Checking book");
+        logger.info(urlBuilder);
         Book book = restTemplate.getForObject(urlBuilder, Book.class);
         if (null == book) {
-            throw new ResourceNotFoundException("Book not found by isbn: " + isbn);
+            ResourceNotFoundException ex = new ResourceNotFoundException("Book not found by isbn: " + isbn);
+            logger.error(ex.getMessage());
+            throw ex;
         }
         return book;
     }

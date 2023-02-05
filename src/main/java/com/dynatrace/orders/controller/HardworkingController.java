@@ -12,26 +12,26 @@ import static java.lang.Math.sqrt;
 
 public abstract class HardworkingController {
     public abstract ConfigRepository getConfigRepository();
-    Logger logger = LoggerFactory.getLogger(HardworkingController.class);
+    private Logger logger = LoggerFactory.getLogger(HardworkingController.class);
 
     private boolean shouldWorkHard() {
         Optional<Config> config = getConfigRepository().findById("dt.work.hard");
-        return config.isPresent() && config.get().isPropertyBool();
+        return config.isPresent() && config.get().isTurnedOn() && 10 < getMemPressureMb() && 100 < getCPUPressure();
     }
 
     private boolean shouldSimulateCrash() {
         Optional<Config> config = getConfigRepository().findById("dt.simulate.crash");
-        return config.isPresent() && config.get().isPropertyBool();
+        return config.isPresent() && config.get().isTurnedOn();
     }
 
     private long getMemPressureMb() {
-        Optional<Config> config = getConfigRepository().findById("dt.work.hard.mem");
-        return config.map(Config::getPropertyLong).orElseGet(() -> 0L);
+        Optional<Config> config = getConfigRepository().findById("dt.work.hard");
+        return config.map(Config::getLoadRAM).orElseGet(() -> 0L);
     }
 
     private long getCPUPressure() {
-        Optional<Config> config = getConfigRepository().findById("dt.work.hard.cpu");
-        return config.map(Config::getPropertyLong).orElseGet(() -> 0L);
+        Optional<Config> config = getConfigRepository().findById("dt.work.hard");
+        return config.map(Config::getLoadCPU).orElseGet(() -> 0L);
     }
 
     protected void simulateCrash() {

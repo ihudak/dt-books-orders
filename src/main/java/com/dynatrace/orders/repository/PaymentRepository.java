@@ -15,7 +15,7 @@ public class PaymentRepository {
     @Value("${http.service.payment}")
     private String paymentBaseURL;
     private RestTemplate restTemplate;
-    Logger logger = LoggerFactory.getLogger(PaymentRepository.class);
+    private Logger logger = LoggerFactory.getLogger(PaymentRepository.class);
 
     public PaymentRepository() {
         restTemplate = new RestTemplate();

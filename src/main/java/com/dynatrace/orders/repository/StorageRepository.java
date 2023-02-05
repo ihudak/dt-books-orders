@@ -16,7 +16,7 @@ public class StorageRepository {
     private String storageBaseURL;
 
     private RestTemplate restTemplate;
-    Logger logger = LoggerFactory.getLogger(StorageRepository.class);
+    private Logger logger = LoggerFactory.getLogger(StorageRepository.class);
 
     public StorageRepository() {
         restTemplate = new RestTemplate();

@@ -7,7 +7,6 @@ import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +23,12 @@ public class OrderController extends HardworkingController {
     @Autowired
     private BookRepository bookRepository;
     @Autowired
-    StorageRepository storageRepository;
+    private StorageRepository storageRepository;
     @Autowired
-    PaymentRepository paymentRepository;
+    private PaymentRepository paymentRepository;
     @Autowired
-    ConfigRepository configRepository;
-    Logger logger = LoggerFactory.getLogger(OrderController.class);
+    private ConfigRepository configRepository;
+    private Logger logger = LoggerFactory.getLogger(OrderController.class);
 
 
     // get all Orders
@@ -75,9 +74,20 @@ public class OrderController extends HardworkingController {
         Book book = verifyBook(order.getIsbn());
         order.setPrice(book.getPrice()); // new order - taking the fresh price
         verifyClient(order.getEmail());
-        Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        Storage storage;
+        try {
+            storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        } catch (InsufficientResourcesException ex) {
+            logger.error(ex.getMessage());
+            throw ex;
+        }
         if (order.isCompleted()) {
             buyFromStorage(storage, order, book);
+        }
+        // check if such order already exists under a different id
+        Order existingOrder = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
+        if (existingOrder != null && order.getId() != existingOrder.getId()) {
+            order.setId(existingOrder.getId());
         }
         logger.debug("Created order for book " + order.getIsbn() + " client " + order.getEmail());
         return orderRepository.save(order);
@@ -98,7 +108,13 @@ public class OrderController extends HardworkingController {
             throw ex;
         }
 
-        Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        Storage storage;
+        try {
+            storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        } catch (InsufficientResourcesException ex) {
+            logger.error(ex.getMessage());
+            throw ex;
+        }
         if (order.isCompleted() && !orderDb.get().isCompleted()) {
             Book book = verifyBook(order.getIsbn());
             // complete the order
@@ -130,7 +146,13 @@ public class OrderController extends HardworkingController {
         }
         verifyClient(order.getEmail());
         Book book = verifyBook(order.getIsbn());
-        Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        Storage storage;
+        try {
+            storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        } catch (InsufficientResourcesException ex) {
+            logger.error(ex.getMessage());
+            throw ex;
+        }
         orderDb.setQuantity(order.getQuantity());
 
         buyFromStorage(storage, orderDb, book);
@@ -156,7 +178,13 @@ public class OrderController extends HardworkingController {
             throw ex;
         }
         verifyClient(order.getEmail());
-        Storage storage = verifyStorage(order.getIsbn(), order.getQuantity());
+        Storage storage;
+        try {
+            storage = verifyStorage(order.getIsbn(), (-1) * order.getQuantity());
+        } catch (InsufficientResourcesException ex) {
+            logger.error(ex.getMessage());
+            throw ex;
+        }
         orderDb.setQuantity(order.getQuantity());
 
         returnToStorage(storage, orderDb);
@@ -208,10 +236,10 @@ public class OrderController extends HardworkingController {
         return book;
     }
 
-    private Storage verifyStorage(String isbn, int quantity) {
+    private Storage verifyStorage(String isbn, int quantity) throws InsufficientResourcesException {
         logger.info("Verifying storage " + isbn);
         Storage storage = storageRepository.getStorageByISBN(isbn);
-        if (null == storage || storage.getQuantity() < quantity) {
+        if (quantity > 0 && (null == storage || storage.getQuantity() < quantity)) {
             InsufficientResourcesException ex = new InsufficientResourcesException("We do not have enough books in storage, ISBN: " + isbn);
             logger.error(ex.getMessage());
             throw ex;
@@ -250,6 +278,8 @@ public class OrderController extends HardworkingController {
         try {
             payOrder(order);
         } catch (PaymentException paymentException) {
+            logger.error("RETURNING BOOKS TO STORAGE");
+            logger.error(paymentException.getMessage());
             storageRepository.returnBook(storage);
             order.setCompleted(false);
             throw paymentException;
@@ -279,16 +309,21 @@ public class OrderController extends HardworkingController {
         logger.debug("Returned order for book " + order.getIsbn() + " client " + order.getEmail());
     }
 
-    private void payOrder(Order order) {
+    private void payOrder(Order order) throws PaymentException {
         simulateHardWork();
         simulateCrash();
         logger.info("Paying order " + order.getIsbn() + " client " + order.getEmail());
         Payment payment = new Payment(order.getId(), order.getPrice() * order.getPrice(), order.getEmail());
-        payment = paymentRepository.submitPayment(payment);
+        try {
+            payment = paymentRepository.submitPayment(payment);
+        } catch (RuntimeException ex) {
+            logger.error("Payment Crashed: " + ex.getMessage());
+            throw new PaymentException(ex.getMessage());
+        }
         if (null == payment || !payment.isSucceeded()) {
-            PaymentException ex = new PaymentException(null == payment ? "Payment Failed" : payment.getMessage());
-            logger.error(ex.getMessage());
-            throw ex;
+            PaymentException ex = new PaymentException("Payment Failed: " + (null == payment ? "no response" : payment.getMessage()));
+            logger.error("Payment Failed: " + ex.getMessage());
+            throw new PaymentException(ex.getMessage());
         }
         logger.debug("Paid order for book " + order.getIsbn() + " client " + order.getEmail());
     }

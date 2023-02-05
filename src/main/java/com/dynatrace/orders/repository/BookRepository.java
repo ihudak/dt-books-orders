@@ -13,7 +13,7 @@ public class BookRepository {
     @Value("${http.service.books}")
     private String bookBaseURL;
     private RestTemplate restTemplate;
-    Logger logger = LoggerFactory.getLogger(BookRepository.class);
+    private Logger logger = LoggerFactory.getLogger(BookRepository.class);
 
     public BookRepository() {
         restTemplate = new RestTemplate();

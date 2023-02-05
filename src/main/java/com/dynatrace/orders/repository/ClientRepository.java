@@ -13,7 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class ClientRepository {
     @Value("${http.service.clients}")
     private String clientBaseURL;
-    Logger logger = LoggerFactory.getLogger(ClientRepository.class);
+    private Logger logger = LoggerFactory.getLogger(ClientRepository.class);
 
     public ClientRepository() {
         restTemplate = new RestTemplate();

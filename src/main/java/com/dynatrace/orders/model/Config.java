@@ -11,27 +11,31 @@ public class Config {
     @Id
     private String id;
 
-    @Column(name="property_long", nullable = true)
-    private long propertyLong;
+    @Column(name="load_cpu", nullable = true)
+    private long loadCPU;
 
-    @Column(name="property_double", nullable = true)
-    private double propertyDouble;
+    @Column(name="load_ram", nullable = true)
+    private long loadRAM;
+
+    @Column(name="probab_fail", nullable = true)
+    private double probabilityFailure;
 
     @Column(name="property_str", nullable = true)
     private String propertyStr;
 
-    @Column(name="property_bool", nullable = true)
-    private boolean propertyBool;
+    @Column(name="turn_on", nullable = true)
+    private boolean turnedOn;
 
     public Config() {
     }
 
-    public Config(String id, long propertyLong, double propertyDouble, String propertyStr, boolean propertyBool) {
+    public Config(String id, long loadCPU, long loadRAM, double probabilityFailure, String propertyStr, boolean turnedOn) {
         this.id = id;
-        this.propertyLong = propertyLong;
-        this.propertyDouble = propertyDouble;
+        this.loadCPU = loadCPU;
+        this.loadRAM = loadRAM;
+        this.probabilityFailure = probabilityFailure;
         this.propertyStr = propertyStr;
-        this.propertyBool = propertyBool;
+        this.turnedOn = turnedOn;
     }
 
     public String getId() {
@@ -42,20 +46,27 @@ public class Config {
         this.id = id;
     }
 
-    public long getPropertyLong() {
-        return propertyLong;
+    public long getLoadCPU() {
+        return loadCPU;
     }
 
-    public void setPropertyLong(long propertyLong) {
-        this.propertyLong = propertyLong;
+    public void setLoadCPU(long loadCPU) {
+        this.loadCPU = loadCPU;
     }
 
-    public double getPropertyDouble() {
-        return propertyDouble;
+    public long getLoadRAM() {
+        return loadRAM;
     }
 
-    public void setPropertyDouble(double propertyDouble) {
-        this.propertyDouble = propertyDouble;
+    public void setLoadRAM(long loadRAM) {
+        this.loadRAM = loadRAM;
+    }
+    public double getProbabilityFailure() {
+        return probabilityFailure;
+    }
+
+    public void setProbabilityFailure(double propertyDouble) {
+        this.probabilityFailure = propertyDouble;
     }
 
     public String getPropertyStr() {
@@ -66,11 +77,11 @@ public class Config {
         this.propertyStr = propertyStr;
     }
 
-    public boolean isPropertyBool() {
-        return propertyBool;
+    public boolean isTurnedOn() {
+        return turnedOn;
     }
 
-    public void setPropertyBool(boolean propertyBool) {
-        this.propertyBool = propertyBool;
+    public void setTurnedOn(boolean propertyBool) {
+        this.turnedOn = propertyBool;
     }
 }

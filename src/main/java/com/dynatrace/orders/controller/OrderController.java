@@ -135,14 +135,11 @@ public class OrderController extends HardworkingController {
         logger.info("Submitting order " + order.getIsbn() + " client " + order.getEmail());
         Order orderDb = orderRepository.findByEmailAndIsbn(order.getEmail(), order.getIsbn());
         if (null == orderDb) {
-            BadRequestException ex = new BadRequestException("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
-            logger.error(ex.getMessage());
-            throw ex;
-        }
-        if (orderDb.isCompleted()) {
-            AlreadyPaidException ex = new AlreadyPaidException("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
-            logger.error(ex.getMessage());
-            throw ex;
+            logger.error("Order not found, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            orderDb = order; // making a new order then
+        } else if (orderDb.isCompleted()) {
+            logger.error("Order is already paid, ISBN " + order.getIsbn() + " client " + order.getEmail());
+            return orderDb; // no need to buy again
         }
         verifyClient(order.getEmail());
         Book book = verifyBook(order.getIsbn());
@@ -153,6 +150,7 @@ public class OrderController extends HardworkingController {
             logger.error(ex.getMessage());
             throw ex;
         }
+
         orderDb.setQuantity(order.getQuantity());
 
         buyFromStorage(storage, orderDb, book);

@@ -1,7 +1,7 @@
 package com.dynatrace.orders.controller;
 
+import com.dynatrace.orders.model.Version;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,8 +16,7 @@ public class VersionController {
     private String svcDate;
 
     @GetMapping("")
-    public ResponseEntity<?> getVersion() {
-        String verStr = "{\"ver\": \"" + this.svcVer + "\", \"date\": \"" + this.svcDate + "\"}";
-        return ResponseEntity.ok().body(verStr);
+    public Version getVersion() {
+        return new Version("orders", svcVer, svcDate, "OK", "Healthy");
     }
 }

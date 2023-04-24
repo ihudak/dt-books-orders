@@ -33,13 +33,13 @@ public class OrderController extends HardworkingController {
 
     // get all Orders
     @GetMapping("")
-    public List<Order> getAllCarts() {
+    public List<Order> getAllOrders() {
         return orderRepository.findAll(Sort.by(Sort.Direction.ASC, "email", "createdAt"));
     }
 
     // get Order by ID
     @GetMapping("/{id}")
-    public Order getCartById(@PathVariable Long id) {
+    public Order getOrderById(@PathVariable Long id) {
         Optional<Order> order = orderRepository.findById(id);
         if (order.isEmpty()) {
             ResourceNotFoundException ex = new ResourceNotFoundException("Order not found");
@@ -51,7 +51,7 @@ public class OrderController extends HardworkingController {
 
     // get Orders of a user
     @GetMapping("/findByEmail")
-    public List<Order> getCartsByEmail(@RequestParam String email) {
+    public List<Order> getOrdersByEmail(@RequestParam String email) {
         logger.info("Finding orders for user " + email);
         this.verifyClient(email);
         return orderRepository.findByEmail(email);
@@ -59,7 +59,7 @@ public class OrderController extends HardworkingController {
 
     // get all users who ordered the book
     @GetMapping("/findByISBN")
-    public List<Order> getCartsByISBN(@RequestParam String isbn) {
+    public List<Order> getOrdersByISBN(@RequestParam String isbn) {
         logger.info("Finding orders for book " + isbn);
         this.verifyBook(isbn);
         return orderRepository.findByEmail(isbn);

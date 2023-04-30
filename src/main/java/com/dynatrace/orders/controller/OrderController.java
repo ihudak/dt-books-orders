@@ -201,7 +201,7 @@ public class OrderController extends HardworkingController {
     @DeleteMapping("/delete-all")
     public void deleteAllBooks() {
         logger.info("Deleting all orders");
-        orderRepository.deleteAll();
+        orderRepository.truncateTable();
     }
 
     private void verifyClient(String email) {
